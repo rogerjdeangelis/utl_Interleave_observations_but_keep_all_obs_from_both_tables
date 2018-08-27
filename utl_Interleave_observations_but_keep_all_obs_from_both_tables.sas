@@ -4,6 +4,12 @@ Interleave observations but keep all obs from both tables
 
   Insired by
   https://stackoverflow.com/users/4965549/tom
+  
+  Recent addition on end
+  see sage advise from
+  "Keintz, Mark" <mkeintz@WHARTON.UPENN.EDU
+
+
 
   PROBLEM:
   --------
@@ -110,5 +116,71 @@ data havSmaller;
     output;
   end;
 run;quit;
+
+
+
+*__  __            _
+|  \/  | __ _ _ __| | __
+| |\/| |/ _` | '__| |/ /
+| |  | | (_| | |  |   <
+|_|  |_|\__,_|_|  |_|\_\
+
+;
+
+"Keintz, Mark" <mkeintz@WHARTON.UPENN.EDU
+
+I should also have added that if one wanted to stick with the original
+answer using conditional sets, you could always add a
+   call missing(of _all_);
+at the bottom of the data step.   But often there are other tracking
+variables you would want to preserve over data step iterations.
+
+The solution presented depends on the unspoken assumption that both
+datasets have exactly the same variables.  Take a look below at SEX HEIGHT
+ and WEIGHT resulting from this answer.  Instead of missing values where
+intuitively expected, it has retained values from the data set
+that doesn't contain the observation-in-hand.
+
+data havlarger;
+  set sashelp.class (drop=height weight);
+  if mod(_n_,4)=1;
+run;
+data havsmaller ;
+  set sashelp.class (obs=6 drop=sex);
+  if mod(_n_,4)=2;
+run;
+
+data want;
+  set havLarger;
+  output;
+  if _n_ <= nobs then do;
+    set havSmaller nobs=nobs;
+    output;
+  end;
+run;
+
+Of course you could issue a keep statement restricted to common
+variables, but that's a dataset-specific solution.  Better to:
+
+data vlarg/view=vlarg;
+  set havlarger;
+  byvar=_n_;
+run;
+data vsmal/view=vsmal;
+  set havsmaller;
+  byvar=_n_;
+run;
+data want (drop=byvar);
+  set vlarg vsmal;
+  by byvar;
+run;
+
+Conditional execution of SET statements are good for carrying
+forward historic values - but I wouldn't recommend that
+technique for this problem
+
+Regards,
+Mark
+
 
 
